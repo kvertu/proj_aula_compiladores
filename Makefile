@@ -1,9 +1,11 @@
 CFLAGS = -I./inc -g
 
 EXEC = mybc
+OUTPUT = out
 
 $(EXEC): main.o lexer.o parser.o
-	$(CC) -o $@ $^
+	ls $(OUTPUT) || mkdir $(OUTPUT)
+	$(CC) -o out/$@ $^
 
 # Targets de limpeza
 clean:
@@ -11,4 +13,5 @@ clean:
 
 # Deleta os arquivos de backup (normalmente produzidos pelo vim)
 cleanall: clean
-	$(RM) *~ $(EXEC)
+	$(RM) *~
+	$(RM) -rf $(OUTPUT)
