@@ -1,6 +1,9 @@
 #pragma once
 
-extern FILE *source; // Será definido no main
+// Será definido no main
+extern FILE *source;
+extern FILE *output;
+
 extern int lookahead;
 
 extern void E(void);

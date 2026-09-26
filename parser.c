@@ -6,72 +6,27 @@
 #include "inc/tokens.h"
 #include "inc/parser.h"
 
-// Lookahead - o "olho" do compilador
-int lookahead;
-
-/*
- * LL(1) parser top-down (gramática preditiva)
- * Requer uma gramática LL(1)
- *
- * LL(1) para expressões
- * E -> ['+''-'] T R
- * T -> F Q
- * R -> ['+''-'] T R | <vazio>
- * Q -> ['*''/'] F Q | <vazio>
- * F -> ID | DEC | '(' E ')'
- */
+int lookahead; // Lookahead - o "olho" do compilador
+extern char lexeme[MAXSTRLEN]; // Guarda os tokens
 
 void E(void)
 {
-    // E -> ['+''-'] T R
-    // Verificar se tem prefixo
-    if (lookahead == '+' || lookahead == '-')
+    int sigflag = 0;
+    int otimesflag = 0;
+    int oplusflag = 0;
+    if (lookahead == '+' || lookahead == '-') {
+        if (lookahead == '-')
+            sigflag = 1; // Sinal identificado
         match(lookahead);
-
-    T();
-
-    // Equivale ao R
-    while (lookahead == '+' || lookahead == '-')
-    {
-        match(lookahead); T();
     }
-}
 
-void T(void)
-{
-    // T -> F Q
-    F();
-
-    // Equivale ao Q
-    while (lookahead == '*' || lookahead == '/')
-    {
-        match(lookahead); F();
-    }
-}
-
-// void R(void)
-// {
-//     // R -> ['+''-'] T R | <vazio>
-//     if (lookahead == '+' || lookahead == '-')
-//     {
-//         match(lookahead); T(); R(); // Mau uso da pilha
-//     }
-// }
-
-// void Q(void)
-// {
-//     // Q -> ['*''/'] F Q | <vazio>
-//     if (lookahead == '*' || lookahead == '/')
-//     {
-//         match(lookahead); F(); Q(); // Mau uso da pilha
-//     }
-// }
-
-void F(void)
-{
-    // F -> ID | DEC | OCT | HEX | '(' E ')'
+_T:
+    // T();
+_F:
+    // F();
     switch (lookahead) {
         case ID:
+            fprintf(output, " %s", lexeme);
             match(ID);
             break;
         case DEC:
@@ -87,16 +42,46 @@ void F(void)
             match('('); E(); match(')');
             break;
     }
+
+    if (otimesflag) {
+        fprintf(output, " %c", otimesflag);
+        otimesflag = 0;
+    }
+
+    if (lookahead == '*' || lookahead == '/')
+    {
+        otimesflag = lookahead;
+        match(lookahead);
+        goto _F;
+    }
+
+    // Termo termina aqui
+    if (sigflag) {
+        fprintf(output, " neg");
+        sigflag = 0;
+    }
+
+    if (oplusflag) {
+        fprintf(output, " %c", oplusflag);
+        oplusflag = 0;
+    }
+
+    if (lookahead == '+' || lookahead == '-')
+    {
+        oplusflag = lookahead;
+        match(lookahead);
+        goto _T;
+    }
 }
 
 void match(int expected)
 {
     if (expected == lookahead) {
         // Esvazia o topo da pilha e segue para o próximo
-        if (isprint(lookahead))
-            printf("%c ", lookahead);
-        else
-            printf("%d ", lookahead);
+        //if (isprint(lookahead))
+        //    printf("%c ", lookahead);
+        //else
+        //    printf("%d ", lookahead);
 
         lookahead = getToken(source);
     } else {

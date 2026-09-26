@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include "inc/tokens.h"
 #include "inc/lexer.h"
 
 unsigned long linecount = 1;
 
-void skipWhitespaces(FILE *tape)
+char lexeme[MAXSTRLEN+1];
+void skipspaces(FILE *tape)
 {
     /*
      * Pula os espaços em branco
@@ -18,29 +20,70 @@ void skipWhitespaces(FILE *tape)
     ungetc(c, tape);
 }
 
+/*
+	2026-09-09: Implementem um varredor de comentários Pascal [void skipcomments(FILE *)], onde
+	um comentário começa com '{' e finaliza com '}', a menos que se utilize
+	"\{" e "\}", para ser interpretado como elemento do texto.
+	Exemplo:
+	begin {
+			isto é um comentário. Aqui, eu devo utilizar \{ e \} para constar no interior
+		    do comentário
+		  }     { outro comentário depois do comentário prévio }
+	  blah blah blah
+	end;
+    TODO: Identificar o erro descrito pelo professor em aula.
+ */
+
+void skipcomments(FILE *tape)
+{
+	int head;
+	_skpspc:
+	skipspaces(tape);
+	if ( (head = getc(tape)) == '{') {
+		while( (head = getc(tape)) != '}') {
+
+			if (head == '\\') {
+				if ( (head = getc(tape)) == '{' || head == '}')
+					head = getc(tape);
+			}
+
+			if (head == '\n') {
+				linecount++;
+			}
+
+			if ( head == EOF ) {
+				fprintf(stderr, "Comentário não fechado (linha %ld)\n", linecount);
+				exit(-4);
+			}
+		}
+		goto _skpspc;
+	}
+	ungetc(head, tape);
+}
+
 int isID(FILE *tape)
 {
-    /*
-     * ID = [a-Z][a-Z0-9]*
-     */
-    int head = getc(tape);
+    lexeme[0] = getc(tape);
 
-    if (isalpha(head))
+    if (isalpha(lexeme[0]))
     {
-        while (isalnum(head = getc(tape)));
-        ungetc(head, tape);
+        int i = 1;
+        while (isalnum(lexeme[i] = getc(tape)))
+        {
+            if (i < MAXSTRLEN) i++;
+        }
+        ungetc(lexeme[i], tape);
+        lexeme[i] = 0;
         return ID;
     }
 
-    ungetc(head, tape);
+    ungetc(lexeme[0], tape);
+    lexeme[0] = 0;
     return 0;
 }
 
 int isOCT(FILE *tape)
 {
-    /*
-     * OCT = '0'[0-7]+
-     */
     int head = getc(tape);
 
     if (head == '0') {
@@ -63,10 +106,7 @@ int isOCT(FILE *tape)
 
 int isHEX(FILE *tape)
 {
-    /*
-     * HEX = '0'[xX][0-9A-Fa-f]+
-     */
-    char hprefix[2]; // Prefixo "0x"
+    int hprefix[2]; // Prefixo "0x"
     hprefix[0] = getc(tape);
     hprefix[1] = getc(tape);
 
@@ -90,9 +130,6 @@ int isHEX(FILE *tape)
 
 int isDEC(FILE *tape)
 {
-    /*
-     * DEC = '0' | [1-9][0-9]*
-     */
     int head = getc(tape);
 
     if (isdigit(head)) {
@@ -110,18 +147,18 @@ int isDEC(FILE *tape)
 
 int getToken(FILE *src)
 {
-    skipWhitespaces(src);
+    skipcomments(src);
 
     int token;
-    fprintf(stderr, "Verificando ID...\n");
+    //fprintf(stderr, "Verificando ID...\n");
     if ((token = isID(src))) return token;
-    fprintf(stderr, "Verificando OCT...\n");
+    //fprintf(stderr, "Verificando OCT...\n");
     if ((token = isOCT(src))) return token;
-    fprintf(stderr, "Verificando HEX...\n");
+    //fprintf(stderr, "Verificando HEX...\n");
     if ((token = isHEX(src))) return token;
-    fprintf(stderr, "Verificando DEC...\n");
+    //fprintf(stderr, "Verificando DEC...\n");
     if ((token = isDEC(src))) return token;
-    fprintf(stderr, "Nada encontrado, retornando token genérico...\n");
+    //fprintf(stderr, "Nada encontrado, retornando token genérico...\n");
 
     // Se nenhum padrão foi satisfeito, retorne o caracter ASCII mesmo
     token = getc(src);
