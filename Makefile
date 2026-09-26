@@ -5,7 +5,7 @@ OUTPUT = out
 
 $(EXEC): main.o lexer.o parser.o
 	ls $(OUTPUT) || mkdir $(OUTPUT)
-	$(CC) -o out/$@ $^
+	$(CC) -o $(OUTPUT)/$@ $^
 
 # Targets de limpeza
 clean:
