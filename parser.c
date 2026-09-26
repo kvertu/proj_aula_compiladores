@@ -7,7 +7,7 @@
 #include "inc/parser.h"
 
 int lookahead; // Lookahead - o "olho" do compilador
-extern char lexeme[MAXSTRLEN]; // Guarda os tokens
+extern char lexeme[]; // Guarda os tokens
 
 void E(void)
 {
