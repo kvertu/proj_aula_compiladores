@@ -2,15 +2,44 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "inc/lexer.h"
 #include "inc/tokens.h"
 #include "inc/parser.h"
 
+//usar fscanf em vez de getc
+//tem q mudar pra ponto flutuante, criar ponto flutuante
+
 int lookahead; // Lookahead - o "olho" do compilador
 extern char lexeme[]; // Guarda os tokens
 
+//maquina virtual definção
+//acumulador: 
+double acc = 0;
+#define MAXSTACKSIZE 1024
+double stack[MAXSTACKSIZE];
+int sp = -1; //stack pointer
+void push(void)
+{
+    sp++;
+    stack[sp] = acc;
+}
+double pop(void)
+{
+    double aux = stack[sp];
+    sp--;
+    return aux;
+}
+
+
+//memoria virtual, tem o msm tamanho tabela de simbolos
+#define SYMTABSIZE 1024
+double vmem[SYMTABSIZE];
+char symtab[SYMTABSIZE][MAXSTRLEN+1];
+
 void E(void)
 {
+    char name[MAXSTRLEN+1];
     int sigflag = 0;
     int otimesflag = 0;
     int oplusflag = 0;
@@ -26,10 +55,25 @@ _F:
     // F();
     switch (lookahead) {
         case ID:
-            fprintf(output, " %s", lexeme);
-            match(ID);
+            //fprintf(output, " %s", lexeme);
+            stpcpy(name, lexeme);
+            //depois do identificador pode vir dois pontos ou igual (tarefa isASGN)
+            match(ID); //ID é associado para variavel r-value ou l-value
+            if(lookahead == ASGN){
+                // ID :=E -> l-value
+                // store(name, acc)
+                match(ASGN);
+                E();
+            }else{
+                //r-value
+                //acc = recall(name); //adicionar vmem em algum lugar
+                ;
+
+            }
+
             break;
         case DEC:
+            acc = atoi(lexeme);
             match(DEC);
             break;
         case OCT:
@@ -44,7 +88,7 @@ _F:
     }
 
     if (otimesflag) {
-        fprintf(output, " %c", otimesflag);
+        //fprintf(output, " %c", otimesflag);
         otimesflag = 0;
     }
 
@@ -57,17 +101,23 @@ _F:
 
     // Termo termina aqui
     if (sigflag) {
-        fprintf(output, " neg");
+        //fprintf(output, " neg");
         sigflag = 0;
     }
 
     if (oplusflag) {
-        fprintf(output, " %c", oplusflag);
+        //fprintf(output, " %c", oplusflag);
+        if(oplusflag == '+'){
+            acc = acc + pop();
+        }else{
+            // subtract here ---- :to do
+        }
         oplusflag = 0;
     }
 
     if (lookahead == '+' || lookahead == '-')
     {
+        push();
         oplusflag = lookahead;
         match(lookahead);
         goto _T;
