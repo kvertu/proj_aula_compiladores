@@ -5,8 +5,6 @@
 FILE *source;
 FILE *output;
 
-//falta o "verificador" de sinal 
-
 int main()
 {
     source = stdin;
