@@ -73,21 +73,18 @@ _F:
     switch (lookahead) {
         case ID:
             //fprintf(output, " %s", lexeme);
-            stpcpy(name, lexeme);
-            //depois do identificador pode vir dois pontos ou igual (tarefa isASGN)
+            strcpy(name, lexeme);
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
-                // store(name, acc)
-                match(ASGN);
+                match(ASGN);  
                 E();
+                // store(name, acc)
+                vmem[lookup(name)] = acc;
             }else{
                 //r-value
-                //acc = recall(name); //adicionar vmem em algum lugar
-                ;
-
+                acc = vmem[lookup(name)];  // recall
             }
-
             break;
         case DEC:
             acc = atoi(lexeme);
