@@ -5,8 +5,6 @@
 FILE *source;
 FILE *output;
 
-//falta o "verificador" de sinal 
-
 int main()
 {
     source = stdin;
@@ -16,7 +14,7 @@ int main()
 
     E();
 
-    printf("\n");
+    printf("%f\n", acc);
 
     return 0;
 }

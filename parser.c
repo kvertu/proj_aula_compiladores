@@ -37,6 +37,23 @@ double pop(void)
 double vmem[SYMTABSIZE];
 char symtab[SYMTABSIZE][MAXSTRLEN+1];
 
+int symcount = 0;
+
+//procura um nome na tabela de simbolos, se não tiver cadastra um novo símbolo
+int lookup(const char *name)
+{
+    for (int i = 0; i < symcount; i++)
+        if (strcmp(symtab[i], name) == 0) return i;
+
+    if (symcount >= SYMTABSIZE) {
+        fprintf(stderr, "Tabela de símbolos cheia\n");
+        exit(-6);
+    }
+    strcpy(symtab[symcount], name);
+    vmem[symcount] = 0;
+    return symcount++;
+}
+
 void E(void)
 {
     char name[MAXSTRLEN+1];
@@ -56,32 +73,31 @@ _F:
     switch (lookahead) {
         case ID:
             //fprintf(output, " %s", lexeme);
-            stpcpy(name, lexeme);
-            //depois do identificador pode vir dois pontos ou igual (tarefa isASGN)
+            strcpy(name, lexeme);
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
-                // store(name, acc)
-                match(ASGN);
+                match(ASGN);  
                 E();
+                // store(name, acc)
+                vmem[lookup(name)] = acc;
             }else{
                 //r-value
-                //acc = recall(name); //adicionar vmem em algum lugar
-                ;
-
+                acc = vmem[lookup(name)];  // recall
             }
-
-            break;
-        case DEC:
-            acc = atoi(lexeme);
-            match(DEC);
             break;
         case OCT:
+            acc = strtol(lexeme, NULL, 8);
             match(OCT);
             break;
         case HEX:
+            acc = strtol(lexeme, NULL, 16);
             match(HEX);
             break;
+        case DEC:
+            acc = strtod(lexeme, NULL);
+            match(DEC);
+            break;    
         default:
             match('('); E(); match(')');
             break;
@@ -89,11 +105,22 @@ _F:
 
     if (otimesflag) {
         //fprintf(output, " %c", otimesflag);
+        if(otimesflag == '*'){
+            acc = pop() * acc;
+        }else {
+            double divisor = acc;
+            if (divisor == 0) {
+                fprintf(stderr, "Divisão por zero (linha %ld)\n", linecount);
+                exit(-5);
+            }
+            acc = pop() / divisor;
+        }    
         otimesflag = 0;
     }
 
     if (lookahead == '*' || lookahead == '/')
     {
+        push(); //guarda operando esquerdo
         otimesflag = lookahead;
         match(lookahead);
         goto _F;
@@ -102,6 +129,7 @@ _F:
     // Termo termina aqui
     if (sigflag) {
         //fprintf(output, " neg");
+        acc = -acc;
         sigflag = 0;
     }
 
@@ -110,7 +138,7 @@ _F:
         if(oplusflag == '+'){
             acc = acc + pop();
         }else{
-            // subtract here ---- :to do
+            acc = pop() - acc;
         }
         oplusflag = 0;
     }
