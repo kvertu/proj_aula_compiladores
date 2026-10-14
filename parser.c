@@ -37,6 +37,23 @@ double pop(void)
 double vmem[SYMTABSIZE];
 char symtab[SYMTABSIZE][MAXSTRLEN+1];
 
+int symcount = 0;
+
+//procura um nome na tabela de simbolos, se não tiver cadastra um novo símbolo
+int lookup(const char *name)
+{
+    for (int i = 0; i < symcount; i++)
+        if (strcmp(symtab[i], name) == 0) return i;
+
+    if (symcount >= SYMTABSIZE) {
+        fprintf(stderr, "Tabela de símbolos cheia\n");
+        exit(-6);
+    }
+    strcpy(symtab[symcount], name);
+    vmem[symcount] = 0;
+    return symcount++;
+}
+
 void E(void)
 {
     char name[MAXSTRLEN+1];
