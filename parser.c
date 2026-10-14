@@ -86,17 +86,18 @@ _F:
                 acc = vmem[lookup(name)];  // recall
             }
             break;
-        case DEC:
-            acc = strtod(lexeme, NULL);
-            match(DEC);
-            break;
         case OCT:
             acc = strtol(lexeme, NULL, 8);
             match(OCT);
             break;
         case HEX:
+            acc = strtol(lexeme, NULL, 16);
             match(HEX);
             break;
+        case DEC:
+            acc = strtod(lexeme, NULL);
+            match(DEC);
+            break;    
         default:
             match('('); E(); match(')');
             break;
@@ -128,6 +129,7 @@ _F:
     // Termo termina aqui
     if (sigflag) {
         //fprintf(output, " neg");
+        acc = -acc;
         sigflag = 0;
     }
 

@@ -139,12 +139,20 @@ int isHEX(FILE *tape)
     hprefix[1] = getc(tape);
 
     if (hprefix[0] == '0' && tolower(hprefix[1]) == 'x') {
-        int head;
-        if (isxdigit(head = getc(tape)))
+        int head = getc(tape);
+        if (isxdigit(head))
         {
-            while (isxdigit(head = getc(tape)));
-            ungetc(head, tape);
+            int i = 0;
+            lexeme[i++] = hprefix[0]; // '0'
+            lexeme[i++] = hprefix[1]; // 'x' ou 'X'
+            lexeme[i++] = head;    
 
+            while (isxdigit(head = getc(tape))){
+                if (i < MAXSTRLEN) lexeme[i++] = head;
+            }
+
+            ungetc(head, tape);
+            lexeme[i] = 0;
             return HEX;
         }
         // Não é um hexadecimal, devolvendo tudo
@@ -199,7 +207,7 @@ int getToken(FILE *src)
     //fprintf(stderr, "Verificando OCT...\n");
     if ((token = isOCT(src))) return token;
     //fprintf(stderr, "Verificando ASGN...\n");
-    if((token = isASGN(scr))) return token;
+    if((token = isASGN(src))) return token;
     //fprintf(stderr, "Verificando HEX...\n");
     if ((token = isHEX(src))) return token;
     //fprintf(stderr, "Verificando DEC...\n");
