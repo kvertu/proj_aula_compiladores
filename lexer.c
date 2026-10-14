@@ -88,16 +88,23 @@ int isOCT(FILE *tape)
 
     if (head == '0') {
         int octcheck = getc(tape);
-        if ('0' > head || head > '7')
-        {
-            // Não é um octal, coloca tudo de volta na tape
-            ungetc(octcheck, tape);
+
+        //Testa octchek em vez de head
+        if ('0' <= octcheck && octcheck <= '7') {
+            int i = 0;
+            lexeme[i++] = head;
+            lexeme[i++] = octcheck;
+
+            while (head = getc(tape), '0' <= head && head <= '7')
+                if (i < MAXSTRLEN) lexeme[i++] = head;
+
             ungetc(head, tape);
-            return 0;
+            lexeme[i] = 0;
+            return OCT;
         }
-        while (head = getc(tape), '0' <= head && head <= '7');
-        ungetc(head, tape);
-        return OCT;
+
+        //Não é octal, coloca tudo de volta na tape
+        ungetc(octcheck, tape);
     }
 
     ungetc(head, tape);
@@ -149,17 +156,30 @@ int isHEX(FILE *tape)
     return 0;
 }
 
-int isDEC(FILE *tape)// tinha q alterar
+int isDEC(FILE *tape)
 {
-
     lexeme[0] = getc(tape);
 
     if (isdigit(lexeme[0])) {
-        if (head == '0')
-            return DEC;
+        int i = 1;
 
-        int i;    
-        while (isdigit(lexeme[i] = getc(tape)));
+        if (lexeme[0] != '0') {
+            while (isdigit(lexeme[i] = getc(tape))){
+                if (i < MAXSTRLEN) i++;
+            }   
+        } else {
+            lexeme[i] = getc(tape);     
+        }
+
+        // float
+        if (lexeme[i] == '.') {
+            if (i < MAXSTRLEN) i++;
+            while (isdigit(lexeme[i] = getc(tape))){
+                if (i < MAXSTRLEN) i++;
+            }
+                
+        }
+
         ungetc(lexeme[i], tape);
         lexeme[i] = 0;
         return DEC;

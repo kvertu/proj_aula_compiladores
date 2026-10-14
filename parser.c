@@ -87,10 +87,11 @@ _F:
             }
             break;
         case DEC:
-            acc = atoi(lexeme);
+            acc = strtod(lexeme, NULL);
             match(DEC);
             break;
         case OCT:
+            acc = strtol(lexeme, NULL, 8);
             match(OCT);
             break;
         case HEX:
