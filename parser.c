@@ -89,11 +89,22 @@ _F:
 
     if (otimesflag) {
         //fprintf(output, " %c", otimesflag);
+        if(otimesflag == '*'){
+            acc = pop() * acc;
+        }else {
+            double divisor = acc;
+            if (divisor == 0) {
+                fprintf(stderr, "Divisão por zero (linha %ld)\n", linecount);
+                exit(-5);
+            }
+            acc = pop() / divisor;
+        }    
         otimesflag = 0;
     }
 
     if (lookahead == '*' || lookahead == '/')
     {
+        push(); //guarda operando esquerdo
         otimesflag = lookahead;
         match(lookahead);
         goto _F;
@@ -110,7 +121,7 @@ _F:
         if(oplusflag == '+'){
             acc = acc + pop();
         }else{
-            // subtract here ---- :to do
+            acc = pop() - acc;
         }
         oplusflag = 0;
     }
