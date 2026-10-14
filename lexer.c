@@ -104,6 +104,9 @@ int isOCT(FILE *tape)
     return 0;
 }
 
+int isASGN(FILE *tape){
+    return 0; // to do
+}
 int isHEX(FILE *tape)
 {
     int hprefix[2]; // Prefixo "0x"
@@ -128,20 +131,23 @@ int isHEX(FILE *tape)
     return 0;
 }
 
-int isDEC(FILE *tape)
+int isDEC(FILE *tape)// tinha q alterar
 {
-    int head = getc(tape);
 
-    if (isdigit(head)) {
+    lexeme[0] = getc(tape);
+
+    if (isdigit(lexeme[0])) {
         if (head == '0')
             return DEC;
 
-        while (isdigit(head = getc(tape)));
-        ungetc(head, tape);
+        int i;    
+        while (isdigit(lexeme[i] = getc(tape)));
+        ungetc(lexeme[i], tape);
+        lexeme[i] = 0;
         return DEC;
     }
 
-    ungetc(head, tape);
+    ungetc(lexeme[0], tape);
     return 0;
 }
 

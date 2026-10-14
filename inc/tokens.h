@@ -8,4 +8,5 @@ enum {
     DEC = 1025,
     OCT = 1026,
     HEX = 1027,
+    ASGN,  //RIGTH ASSOCIATIVE ASSIGNMET OPERATOR  tem que ser imp no lexer
 };
