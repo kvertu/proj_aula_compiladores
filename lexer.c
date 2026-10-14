@@ -104,9 +104,27 @@ int isOCT(FILE *tape)
     return 0;
 }
 
+// ASGN = :=
 int isASGN(FILE *tape){
-    return 0; // to do
+    int head = getc(tape);
+
+    if (head == '=')
+        return ASGN;
+
+    if (head == ':') {
+        int next = getc(tape);
+        if (next == '=')
+            return ASGN;
+        ungetc(next, tape);
+    }
+
+    ungetc(head, tape);
+    return 0;
+
 }
+
+
+
 int isHEX(FILE *tape)
 {
     int hprefix[2]; // Prefixo "0x"
@@ -160,6 +178,8 @@ int getToken(FILE *src)
     if ((token = isID(src))) return token;
     //fprintf(stderr, "Verificando OCT...\n");
     if ((token = isOCT(src))) return token;
+    //fprintf(stderr, "Verificando ASGN...\n");
+    if((token = isASGN(scr))) return token;
     //fprintf(stderr, "Verificando HEX...\n");
     if ((token = isHEX(src))) return token;
     //fprintf(stderr, "Verificando DEC...\n");
