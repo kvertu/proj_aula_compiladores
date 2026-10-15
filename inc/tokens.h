@@ -1,3 +1,4 @@
+// <tokens.h>::
 #pragma once
 
 enum {
@@ -5,3 +6,5 @@ enum {
     NUM,
     ASGN,  //RIGHT ASSOCIATIVE ASSIGNMENT OPERATOR
 };
+
+extern void printToken(FILE *out, int tk);
