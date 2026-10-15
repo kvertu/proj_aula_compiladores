@@ -5,13 +5,7 @@ extern FILE *source;
 extern FILE *output;
 
 extern int lookahead;
+extern char lexeme[]; // Guarda os tokens
 
-extern void E(void);
-extern void T(void);
-extern void R(void);
-extern void F(void);
-extern void Q(void);
+extern void mybc();
 extern void match(int);
-
-extern int getToken(FILE *); // Definido em lexer.c
-extern unsigned long linecount; // Definido em lexer.c

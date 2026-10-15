@@ -15,7 +15,10 @@ void skipspaces(FILE *tape)
     int c;
     while (isspace(c = getc(tape)))
     {
-        if (c == '\n') linecount++;
+        if (c == '\n') {
+            linecount++;
+            break;
+        }
     }
     ungetc(c, tape);
 }
@@ -82,118 +85,32 @@ int isID(FILE *tape)
     return 0;
 }
 
-int isOCT(FILE *tape)
-{
-    int head = getc(tape);
-
-    if (head == '0') {
-        int octcheck = getc(tape);
-
-        //Testa octchek em vez de head
-        if ('0' <= octcheck && octcheck <= '7') {
-            int i = 0;
-            lexeme[i++] = head;
-            lexeme[i++] = octcheck;
-
-            while (head = getc(tape), '0' <= head && head <= '7')
-                if (i < MAXSTRLEN) lexeme[i++] = head;
-
-            ungetc(head, tape);
-            lexeme[i] = 0;
-            return OCT;
-        }
-
-        //Não é octal, coloca tudo de volta na tape
-        ungetc(octcheck, tape);
-    }
-
-    ungetc(head, tape);
-    return 0;
-}
-
 // ASGN = :=
 int isASGN(FILE *tape){
-    int head = getc(tape);
-
-    if (head == '=')
-        return ASGN;
-
-    if (head == ':') {
-        int next = getc(tape);
-        if (next == '=')
-            return ASGN;
-        ungetc(next, tape);
-    }
-
-    ungetc(head, tape);
-    return 0;
-
-}
-
-
-
-int isHEX(FILE *tape)
-{
-    int hprefix[2]; // Prefixo "0x"
-    hprefix[0] = getc(tape);
-    hprefix[1] = getc(tape);
-
-    if (hprefix[0] == '0' && tolower(hprefix[1]) == 'x') {
-        int head = getc(tape);
-        if (isxdigit(head))
-        {
-            int i = 0;
-            lexeme[i++] = hprefix[0]; // '0'
-            lexeme[i++] = hprefix[1]; // 'x' ou 'X'
-            lexeme[i++] = head;    
-
-            while (isxdigit(head = getc(tape))){
-                if (i < MAXSTRLEN) lexeme[i++] = head;
-            }
-
-            ungetc(head, tape);
-            lexeme[i] = 0;
-            return HEX;
-        }
-        // Não é um hexadecimal, devolvendo tudo
-        ungetc(head, tape);
-    }
-
-    ungetc(hprefix[1], tape);
-    ungetc(hprefix[0], tape);
-    return 0;
-}
-
-int isDEC(FILE *tape)
-{
+    // ":="
     lexeme[0] = getc(tape);
-
-    if (isdigit(lexeme[0])) {
-        int i = 1;
-
-        if (lexeme[0] != '0') {
-            while (isdigit(lexeme[i] = getc(tape))){
-                if (i < MAXSTRLEN) i++;
-            }   
-        } else {
-            lexeme[i] = getc(tape);     
+    if (lexeme[0] == ':') {
+        lexeme[1] = getc(tape);
+        if (lexeme[1] == '=') {
+            return ASGN;
         }
-
-        // float
-        if (lexeme[i] == '.') {
-            if (i < MAXSTRLEN) i++;
-            while (isdigit(lexeme[i] = getc(tape))){
-                if (i < MAXSTRLEN) i++;
-            }
-                
-        }
-
-        ungetc(lexeme[i], tape);
-        lexeme[i] = 0;
-        return DEC;
+        ungetc(lexeme[1], tape);
     }
-
     ungetc(lexeme[0], tape);
+    return 0;
+}
+
+// NUM = [0-9]+ EE | [0-9]+\.[0-9]* | [0-9]*\.[0-9]+
+int isNUM(FILE *tape) {
+    if (isdigit(lexeme[0] = getc(tape))) {
+        double aux;
+        ungetc(lexeme[0], tape);
+        int nc = fscanf(tape, "%lg", &aux);
+        sprintf(lexeme, "%lg", aux);
+        return NUM;
+    }
+    ungetc(lexeme[0], tape);
+    lexeme[0] = 0;
     return 0;
 }
 
@@ -204,14 +121,10 @@ int getToken(FILE *src)
     int token;
     //fprintf(stderr, "Verificando ID...\n");
     if ((token = isID(src))) return token;
-    //fprintf(stderr, "Verificando OCT...\n");
-    if ((token = isOCT(src))) return token;
     //fprintf(stderr, "Verificando ASGN...\n");
     if((token = isASGN(src))) return token;
-    //fprintf(stderr, "Verificando HEX...\n");
-    if ((token = isHEX(src))) return token;
-    //fprintf(stderr, "Verificando DEC...\n");
-    if ((token = isDEC(src))) return token;
+    // //fprintf(stderr, "Verificando NUM...\n");
+    if ((token = isNUM(src))) return token;
     //fprintf(stderr, "Nada encontrado, retornando token genérico...\n");
 
     // Se nenhum padrão foi satisfeito, retorne o caracter ASCII mesmo
