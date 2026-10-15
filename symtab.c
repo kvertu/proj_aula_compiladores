@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "inc/error.h"
 #include "inc/lexer.h"
 #include "inc/symtab.h"
 
@@ -26,7 +27,9 @@ int symtab_append(const char* varname) {
         strcpy(symtab[inserted = symcount], varname);
         symcount++;
     } else {
-        return -1; // symtab overflow
+        // symtab overflow
+        err = SYM_OVERFLOW;
+        return -1;
     }
     return inserted;
 }

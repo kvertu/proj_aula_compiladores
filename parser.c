@@ -1,15 +1,14 @@
 //<parser.c>::
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "inc/error.h"
 #include "inc/lexer.h"
 #include "inc/tokens.h"
 #include "inc/vmachine.h"
 #include "inc/parser.h"
 
 //usar fscanf em vez de getc
-//tem q mudar pra ponto flutuante, criar ponto flutuante
 
 int lookahead; // Lookahead - o "olho" do compilador
 
@@ -45,14 +44,6 @@ _F:
                 acc = recall(name);
             }
             break;
-        // case OCT:
-        //     acc = strtol(lexeme, NULL, 8);
-        //     match(OCT);
-        //     break;
-        // case HEX:
-        //     acc = strtol(lexeme, NULL, 16);
-        //     match(HEX);
-        //     break;
         case NUM:
             acc = strtod(lexeme, NULL);
             match(NUM);
@@ -69,10 +60,13 @@ _F:
         }else {
             double divisor = acc;
             if (divisor == 0) {
-                fprintf(stderr, "Divisão por zero (linha %ld)\n", linecount);
-                exit(-5);
+                // fprintf(stderr, "Divisão por zero (linha %ld)\n", linecount);
+                err = MATH_DIV_BY_ZERO;
+                errline = linecount;
+                // exit(-5);
+            } else {
+                acc = pop() / divisor;
             }
-            acc = pop() / divisor;
         }
         otimesflag = 0;
     }
@@ -124,13 +118,15 @@ void match(int expected)
     } else {
         // Erro de sintaxe
         if (lookahead == EOF) {
-            fprintf(stderr, "Atingido fim de arquivo prematuramente (linha %ld)\n", linecount);
-        } else if (isprint(lookahead)) {
-            fprintf(stderr, "Token '%c' não coincide (esperava '%c') (linha %ld)\n", lookahead, expected, linecount);
+            // fprintf(stderr, "Atingido fim de arquivo prematuramente (linha %ld)\n", linecount);
+            err = LEX_PREMATURE_EOF;
         } else {
-            fprintf(stderr, "Token %d não coincide (esperava %d) (linha %ld)\n", lookahead, expected, linecount);
+            err = PARS_TOKEN_MISMATCH;
+            errtk = lookahead;
+            errline = linecount;
+            expectedtk = expected;
         }
-        exit(-2);
+        // exit(-2);
     }
 }
 
@@ -149,10 +145,15 @@ int isFIRST(void) {
 
 // TODO: criar uma flag de erro para tratar corretamente aqui
 void mybc(void) {
+    lookahead = getToken(source);
     while(lookahead != EOF) {
         if (isFIRST()) {
             expr(); // Resultado fica na acc
-            fprintf(output, "%lg\n", acc);
+            if (err) {
+                printErr();
+            } else {
+                fprintf(output, "%lg\n", acc);
+            }
         } // Podemos ter a expressão vazia
 
         if (lookahead == '\n' || lookahead == ';') {

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include "inc/error.h"
 #include "inc/tokens.h"
 #include "inc/lexer.h"
 
@@ -55,8 +56,10 @@ void skipcomments(FILE *tape)
 			}
 
 			if ( head == EOF ) {
-				fprintf(stderr, "Comentário não fechado (linha %ld)\n", linecount);
-				exit(-4);
+				// fprintf(stderr, "Comentário não fechado (linha %ld)\n", linecount);
+				// exit(-4);
+				err = LEX_PREMATURE_EOF;
+				break;
 			}
 		}
 		goto _skpspc;
