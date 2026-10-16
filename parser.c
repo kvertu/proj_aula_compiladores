@@ -5,56 +5,15 @@
 #include <string.h>
 #include "inc/lexer.h"
 #include "inc/tokens.h"
+#include "inc/vmachine.h"
 #include "inc/parser.h"
 
 //usar fscanf em vez de getc
 //tem q mudar pra ponto flutuante, criar ponto flutuante
 
 int lookahead; // Lookahead - o "olho" do compilador
-extern char lexeme[]; // Guarda os tokens
 
-//maquina virtual definção
-//acumulador: 
-double acc = 0;
-#define MAXSTACKSIZE 1024
-double stack[MAXSTACKSIZE];
-int sp = -1; //stack pointer
-void push(void)
-{
-    sp++;
-    stack[sp] = acc;
-}
-double pop(void)
-{
-    double aux = stack[sp];
-    sp--;
-    return aux;
-}
-
-
-//memoria virtual, tem o msm tamanho tabela de simbolos
-#define SYMTABSIZE 1024
-double vmem[SYMTABSIZE];
-char symtab[SYMTABSIZE][MAXSTRLEN+1];
-
-int symcount = 0;
-
-//procura um nome na tabela de simbolos, se não tiver cadastra um novo símbolo
-int lookup(const char *name)
-{
-    for (int i = 0; i < symcount; i++)
-        if (strcmp(symtab[i], name) == 0) return i;
-
-    if (symcount >= SYMTABSIZE) {
-        fprintf(stderr, "Tabela de símbolos cheia\n");
-        exit(-6);
-    }
-    strcpy(symtab[symcount], name);
-    vmem[symcount] = 0;
-    return symcount++;
-}
-
-void E(void)
+void expr(void)
 {
     char name[MAXSTRLEN+1];
     int sigflag = 0;
@@ -77,29 +36,29 @@ _F:
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
-                match(ASGN);  
-                E();
-                // store(name, acc)
-                vmem[lookup(name)] = acc;
+                match(ASGN);
+                expr();
+                // store(name)
+                store(name);
             }else{
                 //r-value
-                acc = vmem[lookup(name)];  // recall
+                acc = recall(name);
             }
             break;
-        case OCT:
-            acc = strtol(lexeme, NULL, 8);
-            match(OCT);
-            break;
-        case HEX:
-            acc = strtol(lexeme, NULL, 16);
-            match(HEX);
-            break;
-        case DEC:
+        // case OCT:
+        //     acc = strtol(lexeme, NULL, 8);
+        //     match(OCT);
+        //     break;
+        // case HEX:
+        //     acc = strtol(lexeme, NULL, 16);
+        //     match(HEX);
+        //     break;
+        case NUM:
             acc = strtod(lexeme, NULL);
-            match(DEC);
-            break;    
+            match(NUM);
+            break;
         default:
-            match('('); E(); match(')');
+            match('('); expr(); match(')');
             break;
     }
 
@@ -114,7 +73,7 @@ _F:
                 exit(-5);
             }
             acc = pop() / divisor;
-        }    
+        }
         otimesflag = 0;
     }
 
@@ -136,7 +95,7 @@ _F:
     if (oplusflag) {
         //fprintf(output, " %c", oplusflag);
         if(oplusflag == '+'){
-            acc = acc + pop();
+            acc = pop() + acc;
         }else{
             acc = pop() - acc;
         }
@@ -172,5 +131,32 @@ void match(int expected)
             fprintf(stderr, "Token %d não coincide (esperava %d) (linha %ld)\n", lookahead, expected, linecount);
         }
         exit(-2);
+    }
+}
+
+int isFIRST(void) {
+    switch (lookahead) {
+        case '+':
+        case '-':
+        case ID:
+        case NUM:
+        case '(':
+            return lookahead;
+        default:
+            return 0;
+    }
+}
+
+// TODO: criar uma flag de erro para tratar corretamente aqui
+void mybc(void) {
+    while(lookahead != EOF) {
+        if (isFIRST()) {
+            expr(); // Resultado fica na acc
+            fprintf(output, "%lg\n", acc);
+        } // Podemos ter a expressão vazia
+
+        if (lookahead == '\n' || lookahead == ';') {
+            match(lookahead);
+        }
     }
 }

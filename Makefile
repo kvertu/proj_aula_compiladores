@@ -3,7 +3,7 @@ CFLAGS = -I./inc -g
 EXEC = mybc
 OUTPUT = out
 
-$(EXEC): main.o lexer.o parser.o
+$(EXEC): main.o lexer.o parser.o symtab.o vmachine.o
 	ls $(OUTPUT) || mkdir $(OUTPUT)
 	$(CC) -o $(OUTPUT)/$@ $^
 

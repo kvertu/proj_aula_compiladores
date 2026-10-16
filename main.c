@@ -12,9 +12,7 @@ int main()
     // source = fopen(argv[1], "r");
     lookahead = getToken(source);
 
-    E();
-
-    printf("%f\n", acc);
+    mybc();
 
     return 0;
 }
