@@ -31,18 +31,3 @@ int symtab_append(const char* varname) {
     return inserted;
 }
 
-// Implementação da Thais (une a busca e o append em um só, pode não ser uma boa)
-//procura um nome na tabela de simbolos, se não tiver cadastra um novo símbolo
-int lookup(const char *name)
-{
-    for (int i = 0; i < symcount; i++)
-        if (strcmp(symtab[i], name) == 0) return i;
-
-    if (symcount >= SYMTABSIZE) {
-        fprintf(stderr, "Tabela de símbolos cheia\n");
-        exit(-6); // TODO: remover essas chamadas de exit, substituir por um tratamento de erro mais robusto
-    }
-    strcpy(symtab[symcount], name);
-    vmem[symcount] = 0;
-    return symcount++;
-}
