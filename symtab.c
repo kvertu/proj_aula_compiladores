@@ -6,8 +6,6 @@
 #include "inc/lexer.h"
 #include "inc/symtab.h"
 
-//memoria virtual, tem o msm tamanho tabela de simbolos
-double vmem[SYMTABSIZE];
 char symtab[SYMTABSIZE][MAXSTRLEN+1];
 int symcount = 0;
 
@@ -29,7 +27,7 @@ int symtab_append(const char* varname) {
     } else {
         // symtab overflow
         err = SYM_OVERFLOW;
-        return -1;
+        return SYM_OVERFLOW;
     }
     return inserted;
 }

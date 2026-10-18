@@ -39,6 +39,7 @@ void printErr() {
     fprintf(outerror, "ERRO: ");
     switch (err) {
         case SYM_OVERFLOW:
+            // Não tem como se recuperar de um erro desses, melhor encerrar mesmo
             fprintf(outerror, "Atingido limite da tabela de símbolos. (FATAL)\n");
             exit(SYM_OVERFLOW);
             break;

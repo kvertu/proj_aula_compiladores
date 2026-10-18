@@ -4,10 +4,10 @@
 #include <stdio.h>
 
 enum {
-    SYM_OVERFLOW,
-    MATH_DIV_BY_ZERO,
-    LEX_PREMATURE_EOF,
-    PARS_TOKEN_MISMATCH,
+    SYM_OVERFLOW = -1024,
+    MATH_DIV_BY_ZERO = -1025,
+    LEX_PREMATURE_EOF = -1026,
+    PARS_TOKEN_MISMATCH = -1027,
 };
 
 extern FILE *outerror;

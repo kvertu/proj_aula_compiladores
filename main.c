@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "inc/main.h"
 #include "inc/parser.h"
+#include "inc/main.h"
 
 FILE *source;
 FILE *output;
