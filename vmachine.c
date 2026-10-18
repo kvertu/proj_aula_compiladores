@@ -22,7 +22,11 @@ double pop(void)
 
 void store(const char *name)
 {
-    vmem[lookup(name)] = acc;
+    int pos = lookup(name);
+    if (pos < 0) {
+        return;
+    }
+    vmem[pos] = acc;
 }
 
 double recall(const char *name)
@@ -30,7 +34,7 @@ double recall(const char *name)
     int pos = lookup(name);
 
     if (pos < 0) {
-        return 0.f;
+        return 0.0;
     }
 
     return vmem[pos];  // recall

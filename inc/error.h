@@ -1,6 +1,8 @@
 // <error.h>::
 #pragma once
 
+#include <stdio.h>
+
 enum {
     SYM_OVERFLOW,
     MATH_DIV_BY_ZERO,

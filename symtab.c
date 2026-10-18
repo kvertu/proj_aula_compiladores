@@ -42,8 +42,9 @@ int lookup(const char *name)
         if (strcmp(symtab[i], name) == 0) return i;
 
     if (symcount >= SYMTABSIZE) {
-        fprintf(stderr, "Tabela de símbolos cheia\n");
-        exit(-6); // TODO: remover essas chamadas de exit, substituir por um tratamento de erro mais robusto
+        err = SYM_OVERFLOW;
+        errline = linecount;
+        return -1;
     }
     strcpy(symtab[symcount], name);
     vmem[symcount] = 0;
