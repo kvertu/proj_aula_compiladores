@@ -1,7 +1,0 @@
-{
-    lol \} c + d \{
-}
-{teste prefixo cccccccccccccc} a + b {teste posfixo}
-{
-    Mais um comentário
-} {c}
