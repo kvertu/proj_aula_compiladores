@@ -186,7 +186,7 @@ void mybc(void) {
                 skipToStatementEnd();
                 continue;
             }
-            fprintf(output, "%lg\n", acc);
+            fprintf(output, "%.10g\n", acc);
         } else if (lookahead != '\n' && lookahead != ';') {            
             err = PARS_TOKEN_MISMATCH;        
             errtk = lookahead;

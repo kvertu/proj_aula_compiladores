@@ -149,7 +149,7 @@ int isNUM(FILE *tape) {
             lexeme[0] = 0;
             return 0;
         }
-        sprintf(lexeme, "%lg", aux);
+        sprintf(lexeme, "%.17g", aux);
         return NUM;
     }
     if (c != EOF) {
