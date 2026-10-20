@@ -10,6 +10,28 @@
 
 //usar fscanf em vez de getc
 
+// Gramática EBNF do MyBC anotada com ações semânticas (vide Aula 07).
+// Na gramática, as ações aparecem como [[n]]; no código, cada ação n fica
+// delimitada por /*n*/ ... /*n*/, separando a sintaxe da interpretação.
+//
+//   mybc -> { [ E [[11]] ] ( '\n' | ';' ) } EOF
+//   E    -> [ [[1]] ( '+' | '-' ) ] T [[8]] { [[9]] ( '+' | '-' ) T [[10]] }
+//   T    -> F { [[6]] ( '*' | '/' ) F [[7]] }
+//   F    -> [[2]] ID ( ASGN E [[3]] | [[4]] ) | [[5]] NUM | '(' E ')'
+//
+// Ações semânticas:
+//   [[1]]  sigflag <- (lookahead == '-')      sinal unário da expressão
+//   [[2]]  name <- lexeme                     guarda o nome antes do match(ID)
+//   [[3]]  store(name)                        atribuição: name := acc (l-value)
+//   [[4]]  acc <- recall(name)                leitura da variável (r-value)
+//   [[5]]  acc <- strtod(lexeme)              valor da constante numérica
+//   [[6]]  push(); otimesflag <- lookahead    empilha o operando esquerdo de '*' '/'
+//   [[7]]  acc <- pop() otimes acc            multiplica/divide (checa divisão por zero)
+//   [[8]]  if sigflag: acc <- -acc            aplica o sinal unário ao primeiro termo
+//   [[9]]  push(); oplusflag <- lookahead     empilha o operando esquerdo de '+' '-'
+//   [[10]] acc <- pop() oplus acc             soma/subtrai
+//   [[11]] print acc                          exibe o resultado da expressão
+
 int lookahead; // Lookahead - o "olho" do compilador
 
 static void skipToStatementEnd(void) {
@@ -34,8 +56,7 @@ void expr(void)
         return;
     }
     if (lookahead == '+' || lookahead == '-') {
-        if (lookahead == '-')
-            sigflag = 1; // Sinal identificado
+        /*1*/ if (lookahead == '-') sigflag = 1; /*1*/
         match(lookahead);
         if (err) {
             return;
@@ -60,21 +81,20 @@ _F:
     switch (lookahead) {
         case ID:
             //fprintf(output, " %s", lexeme);
-            strcpy(name, lexeme);
+            /*2*/ strcpy(name, lexeme); /*2*/
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
                 match(ASGN);
                 expr();
-                // store(name)
-                store(name);
+                /*3*/ store(name); /*3*/
             }else{
                 //r-value
-                acc = recall(name);
+                /*4*/ acc = recall(name); /*4*/
             }
             break;
         case NUM:
-            acc = strtod(lexeme, NULL);
+            /*5*/ acc = strtod(lexeme, NULL); /*5*/
             match(NUM);
             break;
         default:
@@ -88,6 +108,7 @@ _F:
             break;
     }
 
+    /*7*/
     if (otimesflag) {
         //fprintf(output, " %c", otimesflag);
         if(otimesflag == '*'){
@@ -104,21 +125,24 @@ _F:
         }
         otimesflag = 0;
     }
+    /*7*/
 
     if (lookahead == '*' || lookahead == '/')
     {
-        push(); //guarda operando esquerdo
-        otimesflag = lookahead;
+        /*6*/ push(); otimesflag = lookahead; /*6*/ //guarda operando esquerdo
         match(lookahead);
         goto _F;
     }
 
     // Termo termina aqui
+    /*8*/
     if (sigflag) {
         acc = -acc;
         sigflag = 0;
     }
+    /*8*/
 
+    /*10*/
     if (oplusflag) {
         if(oplusflag == '+'){
             acc = pop() + acc;
@@ -127,11 +151,11 @@ _F:
         }
         oplusflag = 0;
     }
+    /*10*/
 
     if (lookahead == '+' || lookahead == '-')
     {
-        push();
-        oplusflag = lookahead;
+        /*9*/ push(); oplusflag = lookahead; /*9*/
         match(lookahead);
         goto _T;
     }
@@ -186,7 +210,7 @@ void mybc(void) {
                 skipToStatementEnd();
                 continue;
             }
-            fprintf(output, "%lg\n", acc);
+            /*11*/ fprintf(output, "%lg\n", acc); /*11*/
         } else if (lookahead != '\n' && lookahead != ';') {            
             err = PARS_TOKEN_MISMATCH;        
             errtk = lookahead;
