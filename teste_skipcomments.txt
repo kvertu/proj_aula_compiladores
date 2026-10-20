@@ -1,0 +1,12 @@
+{
+    Operações de teste skpicomments
+}
+
+{ a \}} 1 {1}
+{ a \{} 2 {2}
+{ \{\} } 3 {3}
+{ \{\{\}\} } 4 {4}
+{ x \} y } 5 {5}
+{ Esse comentário não possui fechamento e vai acusar PREMATURE_EOF \}     
+
+        
