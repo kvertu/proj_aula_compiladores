@@ -1,16 +1,16 @@
 #include <stdio.h>
-#include "inc/main.h"
 #include "inc/parser.h"
+#include "inc/main.h"
 
 FILE *source;
 FILE *output;
+FILE *outerror;
 
 int main()
 {
     source = stdin;
     output = stdout;
-    // source = fopen(argv[1], "r");
-    lookahead = getToken(source);
+    outerror = stderr;
 
     mybc();
 

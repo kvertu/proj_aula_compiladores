@@ -1,0 +1,22 @@
+{
+    Isso é um comentário.
+    Essas operações devem funcionar corretamente e dar o resultado entre chaves.
+}
+
+{Operações básicas}
+1 + 1 {2}
+2* 2 {4}
+6 /3 {2}
+0 - 1 {-1}
+
+{Ordem de operações}
+1 + 2 * 2 {5}
+(1 + 2) * 2 {6}
+-(1) {-1}
+-(-(-(-1))) {1}
+
+{Variaveis}
+a := 1 {1}
+b := a + 1 {2}
+c := a + b {3}
+d := a + b - c {0}
