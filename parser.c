@@ -11,6 +11,38 @@
 //usar fscanf em vez de getc
 //tem q mudar pra ponto flutuante, criar ponto flutuante
 
+/*
+ * Gramática EBNF do MyBC com ações semânticas (vide Aula 07)
+ * ----------------------------------------------------------
+ *
+ * mybc -> { [ E [11] ] ( '\n' | ';' ) }
+ *
+ * E    -> [ [1] ('+' | '-') ] T [2] { [3] ('+' | '-') T [4] }
+ * T    -> F { [5] ('*' | '/') F [6] }
+ * F    -> [7] ID ( ASGN E [8] | [9] )
+ *       | [10] NUM
+ *       | '(' E ')'
+ *
+ * Convenção das ações semânticas:
+ *
+ * [1]  ⊖.t ← lookahead       : memoriza o sinal unário (sigflag)
+ * [2]  if ⊖.t = '-': acc ← -acc : aplica a negação ao primeiro termo
+ * [3]  push acc; ⊕.t ← lookahead : guarda operando esquerdo e o operador aditivo
+ * [4]  acc ← pop ⊕.t acc     : executa a soma/subtração pendente
+ * [5]  push acc; ⊗.t ← lookahead : guarda operando esquerdo e o operador multiplicativo
+ * [6]  acc ← pop ⊗.t acc     : executa a multiplicação/divisão pendente
+ * [7]  name ← lexeme         : memoriza o identificador antes do match(ID)
+ * [8]  store(name)           : atribuição (ID como l-value)
+ * [9]  acc ← recall(name)    : leitura de variável (ID como r-value)
+ * [10] acc ← NUM.t           : carrega a constante numérica no acumulador
+ * [11] print acc             : exibe o resultado da expressão
+ *
+ * No código, cada ação semântica [N] fica entre um par de comentários
+ * contendo seu número N (abrindo e fechando a ação), separando-a do que é
+ * puramente sintático (match, laços, desvios). Exemplo, para a ação [9]:
+ *     acc = recall(name);   envolvida pelos marcadores de número 9
+ */
+
 int lookahead; // Lookahead - o "olho" do compilador
 
 void expr(void)
@@ -20,8 +52,7 @@ void expr(void)
     int otimesflag = 0;
     int oplusflag = 0;
     if (lookahead == '+' || lookahead == '-') {
-        if (lookahead == '-')
-            sigflag = 1; // Sinal identificado
+        /*1*/ if (lookahead == '-') sigflag = 1; /*1*/
         match(lookahead);
     }
 
@@ -31,18 +62,16 @@ _F:
     // F();
     switch (lookahead) {
         case ID:
-            //fprintf(output, " %s", lexeme);
-            strcpy(name, lexeme);
+            /*7*/ strcpy(name, lexeme); /*7*/
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
                 match(ASGN);
                 expr();
-                // store(name)
-                store(name);
+                /*8*/ store(name); /*8*/
             }else{
                 //r-value
-                acc = recall(name);
+                /*9*/ acc = recall(name); /*9*/
             }
             break;
         // case OCT:
@@ -54,7 +83,7 @@ _F:
         //     match(HEX);
         //     break;
         case NUM:
-            acc = strtod(lexeme, NULL);
+            /*10*/ acc = strtod(lexeme, NULL); /*10*/
             match(NUM);
             break;
         default:
@@ -62,8 +91,8 @@ _F:
             break;
     }
 
+    /*6*/
     if (otimesflag) {
-        //fprintf(output, " %c", otimesflag);
         if(otimesflag == '*'){
             acc = pop() * acc;
         }else {
@@ -76,24 +105,25 @@ _F:
         }
         otimesflag = 0;
     }
+    /*6*/
 
     if (lookahead == '*' || lookahead == '/')
     {
-        push(); //guarda operando esquerdo
-        otimesflag = lookahead;
+        /*5*/ push(); otimesflag = lookahead; /*5*/
         match(lookahead);
         goto _F;
     }
 
     // Termo termina aqui
+    /*2*/
     if (sigflag) {
-        //fprintf(output, " neg");
         acc = -acc;
         sigflag = 0;
     }
+    /*2*/
 
+    /*4*/
     if (oplusflag) {
-        //fprintf(output, " %c", oplusflag);
         if(oplusflag == '+'){
             acc = pop() + acc;
         }else{
@@ -101,11 +131,11 @@ _F:
         }
         oplusflag = 0;
     }
+    /*4*/
 
     if (lookahead == '+' || lookahead == '-')
     {
-        push();
-        oplusflag = lookahead;
+        /*3*/ push(); oplusflag = lookahead; /*3*/
         match(lookahead);
         goto _T;
     }
@@ -152,7 +182,7 @@ void mybc(void) {
     while(lookahead != EOF) {
         if (isFIRST()) {
             expr(); // Resultado fica na acc
-            fprintf(output, "%lg\n", acc);
+            /*11*/ fprintf(output, "%lg\n", acc); /*11*/
         } // Podemos ter a expressão vazia
 
         if (lookahead == '\n' || lookahead == ';') {
