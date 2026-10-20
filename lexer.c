@@ -106,7 +106,11 @@ int isNUM(FILE *tape) {
         double aux;
         ungetc(lexeme[0], tape);
         int nc = fscanf(tape, "%lg", &aux);
-        sprintf(lexeme, "%lg", aux);
+        if (nc == EOF) {
+            lexeme[0] = 0;
+            return 0;
+        }
+        sprintf(lexeme, "%.17g", aux);
         return NUM;
     }
     ungetc(lexeme[0], tape);
