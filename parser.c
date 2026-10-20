@@ -8,8 +8,6 @@
 #include "inc/vmachine.h"
 #include "inc/parser.h"
 
-//usar fscanf em vez de getc
-
 // Gramática EBNF do MyBC anotada com ações semânticas (vide Aula 07).
 // Na gramática, as ações aparecem como [[n]]; no código, cada ação n fica
 // delimitada por /*n*/ ... /*n*/, separando a sintaxe da interpretação.

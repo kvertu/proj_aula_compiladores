@@ -23,20 +23,6 @@ void skipspaces(FILE *tape)
     ungetc(c, tape);
 }
 
-/*
-	2026-09-09: Implementem um varredor de comentários Pascal [void skipcomments(FILE *)], onde
-	um comentário começa com '{' e finaliza com '}', a menos que se utilize
-	"\{" e "\}", para ser interpretado como elemento do texto.
-	Exemplo:
-	begin {
-			isto é um comentário. Aqui, eu devo utilizar \{ e \} para constar no interior
-		    do comentário
-		  }     { outro comentário depois do comentário prévio }
-	  blah blah blah
-	end;
-    TODO: Identificar o erro descrito pelo professor em aula.
- */
-
 void skipcomments(FILE *tape)
 {
 	int head;
