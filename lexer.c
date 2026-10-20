@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-#include "inc/error.h"
 #include "inc/tokens.h"
 #include "inc/lexer.h"
 
@@ -14,15 +13,14 @@ void skipspaces(FILE *tape)
      * Pula os espaços em branco
      */
     int c;
-    while ((c = getc(tape)) != EOF && isspace(c)) {
+    while (isspace(c = getc(tape)))
+    {
         if (c == '\n') {
             linecount++;
             break;
         }
     }
-    if (c != EOF) {
-        ungetc(c, tape);
-    }
+    ungetc(c, tape);
 }
 
 /*
@@ -44,33 +42,22 @@ void skipcomments(FILE *tape)
 	int head;
 	_skpspc:
 	skipspaces(tape);
-	head = getc(tape);
-	if (head == EOF) {
-		return;
-	}
-	if (head == '{') {
-		while ((head = getc(tape)) != EOF) {
+	if ( (head = getc(tape)) == '{') {
+		while( (head = getc(tape)) != '}') {
+
 			if (head == '\\') {
-				int next = getc(tape);
-				if (next == '{' || next == '}') {
-					head = getc(tape);
-				} else if (next != EOF) {
-					ungetc(next, tape);
-				}
+				if ( (head = getc(tape)) == '{' || head == '}')
+					continue;
 			}
 
 			if (head == '\n') {
 				linecount++;
 			}
 
-			if (head == '}') {
-				break;
+			if ( head == EOF ) {
+				fprintf(stderr, "Comentário não fechado (linha %ld)\n", linecount);
+				exit(-4);
 			}
-		}
-		if (head == EOF) {
-			err = LEX_PREMATURE_EOF;
-			errline = linecount;
-			return;
 		}
 		goto _skpspc;
 	}
@@ -79,36 +66,21 @@ void skipcomments(FILE *tape)
 
 int isID(FILE *tape)
 {
-    int c = getc(tape);
+    lexeme[0] = getc(tape);
 
-    if (c == EOF) {
-        lexeme[0] = 0;
-        return 0;
-    }
-
-    if (isalpha((unsigned char)c))
+    if (isalpha(lexeme[0]))
     {
-        lexeme[0] = (char)c;
         int i = 1;
-        while ((c = getc(tape)) != EOF && isalnum((unsigned char)c))
+        while (isalnum(lexeme[i] = getc(tape)))
         {
-            if (i < MAXSTRLEN) {
-                lexeme[i] = (char)c;
-                i++;
-            }
+            if (i < MAXSTRLEN) i++;
         }
-        if (c != EOF) {
-            ungetc(c, tape);
-        }
-        if (i < MAXSTRLEN) {
-            lexeme[i] = 0;
-        } else {
-            lexeme[MAXSTRLEN] = 0;
-        }
+        ungetc(lexeme[i], tape);
+        lexeme[i] = 0;
         return ID;
     }
 
-    ungetc(c, tape);
+    ungetc(lexeme[0], tape);
     lexeme[0] = 0;
     return 0;
 }
@@ -116,34 +88,23 @@ int isID(FILE *tape)
 // ASGN = :=
 int isASGN(FILE *tape){
     // ":="
-    int c = getc(tape);
-    if (c == EOF) {
-        lexeme[0] = 0;
-        return 0;
-    }
-    if (c == ':') {
-        int next = getc(tape);
-        if (next == '=') {
-            lexeme[0] = ':';
-            lexeme[1] = '=';
-            lexeme[2] = 0;
+    lexeme[0] = getc(tape);
+    if (lexeme[0] == ':') {
+        lexeme[1] = getc(tape);
+        if (lexeme[1] == '=') {
             return ASGN;
         }
-        if (next != EOF) {
-            ungetc(next, tape);
-        }
+        ungetc(lexeme[1], tape);
     }
-    ungetc(c, tape);
-    lexeme[0] = 0;
+    ungetc(lexeme[0], tape);
     return 0;
 }
 
 // NUM = [0-9]+ EE | [0-9]+\.[0-9]* | [0-9]*\.[0-9]+
 int isNUM(FILE *tape) {
-    int c = getc(tape);
-    if (c != EOF && isdigit((unsigned char)c)) {
+    if (isdigit(lexeme[0] = getc(tape))) {
         double aux;
-        ungetc(c, tape);
+        ungetc(lexeme[0], tape);
         int nc = fscanf(tape, "%lg", &aux);
         if (nc == EOF) {
             lexeme[0] = 0;
@@ -152,9 +113,7 @@ int isNUM(FILE *tape) {
         sprintf(lexeme, "%.17g", aux);
         return NUM;
     }
-    if (c != EOF) {
-        ungetc(c, tape);
-    }
+    ungetc(lexeme[0], tape);
     lexeme[0] = 0;
     return 0;
 }
@@ -162,9 +121,6 @@ int isNUM(FILE *tape) {
 int getToken(FILE *src)
 {
     skipcomments(src);
-    if (err == LEX_PREMATURE_EOF) {
-        return EOF;
-    }
 
     int token;
     //fprintf(stderr, "Verificando ID...\n");
