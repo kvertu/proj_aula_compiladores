@@ -32,6 +32,12 @@
 
 int lookahead; // Lookahead - o "olho" do compilador
 
+/*
+ * skipToStatementEnd — recuperação de erro em modo pânico.
+ *
+ * Descarta tokens até o fim do comando corrente ('\n' ou ';') e consome
+ * o separador, permitindo que a análise continue no comando seguinte.
+ */
 static void skipToStatementEnd(void) {
     while (lookahead != EOF && lookahead != '\n' && lookahead != ';') {
         lookahead = getToken(source);
@@ -44,6 +50,19 @@ static void skipToStatementEnd(void) {
     }
 }
 
+/*
+ * expr — reconhece e avalia uma expressão (não-terminal E).
+ *
+ *     E -> [ ( '+' | '-' ) ] T { ( '+' | '-' ) T }
+ *     T -> F { ( '*' | '/' ) F }
+ *     F -> ID ( ASGN E | ε ) | NUM | '(' E ')'
+ *
+ * As produções T e F estão embutidas na própria função, por meio dos
+ * rótulos _T e _F; apenas E (subexpressões e atribuições) é recursiva.
+ * O resultado fica no acumulador acc da máquina virtual.
+ *
+ * Erros: PARS_TOKEN_MISMATCH, LEX_PREMATURE_EOF e MATH_DIV_BY_ZERO.
+ */
 void expr(void)
 {
     char name[MAXSTRLEN+1];
@@ -159,6 +178,12 @@ _F:
     }
 }
 
+/*
+ * match — consome o token esperado e avança o lookahead.
+ *
+ * Se o lookahead não for o esperado, registra o erro (LEX_PREMATURE_EOF
+ * no fim do arquivo, PARS_TOKEN_MISMATCH nos demais casos) e não avança.
+ */
 void match(int expected)
 {
     if (expected == lookahead) {
@@ -179,6 +204,13 @@ void match(int expected)
     }
 }
 
+/*
+ * isFIRST — testa se o lookahead pode iniciar uma expressão.
+ *
+ *     FIRST(E) = { '+', '-', ID, NUM, '(' }
+ *
+ * Retorna o próprio token se ele pertence ao conjunto; caso contrário, 0.
+ */
 int isFIRST(void) {
     switch (lookahead) {
         case '+':
@@ -192,6 +224,15 @@ int isFIRST(void) {
     }
 }
 
+/*
+ * mybc — símbolo inicial da gramática; laço principal do interpretador.
+ *
+ *     mybc -> { [ E ] ( '\n' | ';' ) } EOF
+ *
+ * Avalia cada comando e imprime seu resultado em output. Comandos vazios
+ * são aceitos. Em caso de erro, reporta-o e retoma a análise no comando
+ * seguinte via skipToStatementEnd().
+ */
 void mybc(void) {
     lookahead = getToken(source);
     while (lookahead != EOF) {

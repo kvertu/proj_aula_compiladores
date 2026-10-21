@@ -5,11 +5,18 @@
 #include "inc/tokens.h"
 #include "inc/error.h"
 
-int err = 0;
-long errline = 0;
-int errtk = 0;
-int expectedtk = 0;
+// Estado do erro corrente (zerado após cada printErr)
+int err = 0;            // Código do erro (0 = nenhum)
+long errline = 0;       // Linha onde o erro ocorreu
+int errtk = 0;          // Token encontrado
+int expectedtk = 0;     // Token esperado
 
+/*
+ * printTokenLike — escreve em out uma forma legível de um token.
+ *
+ * Tokens especiais aparecem pelo nome (EOF, LF, ID, NUM, ASGN);
+ * caracteres imprimíveis, entre aspas simples; os demais, pelo código.
+ */
 static void printTokenLike(FILE *out, int tk) {
     switch (tk) {
         case EOF:
@@ -35,6 +42,11 @@ static void printTokenLike(FILE *out, int tk) {
     }
 }
 
+/*
+ * printErr — reporta o erro corrente em outerror e zera o estado de erro.
+ *
+ * SYM_OVERFLOW é fatal: o programa é encerrado com esse código.
+ */
 void printErr() {
     fprintf(outerror, "ERRO: ");
     switch (err) {

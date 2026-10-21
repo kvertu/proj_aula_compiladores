@@ -14,12 +14,18 @@ double vmem[SYMTABSIZE];
 double stack[MAXSTACKSIZE];
 int sp = -1; //stack pointer
 
+/*
+ * push — empilha o valor atual do acumulador.
+ */
 void push(void)
 {
     sp++;
     stack[sp] = acc;
 }
 
+/*
+ * pop — desempilha e retorna o valor do topo da pilha.
+ */
 double pop(void)
 {
     double aux = stack[sp];
@@ -27,7 +33,11 @@ double pop(void)
     return aux;
 }
 
-//guarda o valor atual do acumulador na váriavel que já esta na tabela de simbolos
+/*
+ * store — atribuição: grava o acumulador na variável name.
+ *
+ * Se a variável ainda não existir, ela é criada na tabela de símbolos.
+ */
 void store(const char *name)
 {
     int pos = symtab_lookup(name);
@@ -40,7 +50,11 @@ void store(const char *name)
     vmem[pos] = acc;
 }
 
-// busca o valor de name na vmem e o devolve
+/*
+ * recall — leitura: retorna o valor da variável name.
+ *
+ * Variáveis ainda não atribuídas são criadas com valor 0, como no bc.
+ */
 double recall(const char *name)
 {
     int pos = symtab_lookup(name);
