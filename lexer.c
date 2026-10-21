@@ -2,7 +2,9 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include "inc/tokens.h"
+#include "inc/error.h"
 #include "inc/lexer.h"
+
 
 unsigned long linecount = 1;
 
@@ -13,6 +15,7 @@ void skipspaces(FILE *tape)
      * Pula os espaços em branco
      */
     int c;
+    // Consome espaços em branco até um caractere ou um '\n'
     while (isspace(c = getc(tape)))
     {
         if (c == '\n') {
@@ -28,23 +31,36 @@ void skipcomments(FILE *tape)
 	int head;
 	_skpspc:
 	skipspaces(tape);
-	if ( (head = getc(tape)) == '{') {
-		while( (head = getc(tape)) != '}') {
-
+    head = getc(tape);
+	if (head == EOF) {
+		return;
+	}
+	if (head == '{') {
+		while ((head = getc(tape)) != EOF) {
 			if (head == '\\') {
-				if ( (head = getc(tape)) == '{' || head == '}')
+				int next = getc(tape);
+				if (next == '{' || next == '}') {
 					continue;
+				} else if (next != EOF) {
+					ungetc(next, tape);
+				}
 			}
 
 			if (head == '\n') {
 				linecount++;
 			}
 
-			if ( head == EOF ) {
-				fprintf(stderr, "Comentário não fechado (linha %ld)\n", linecount);
-				exit(-4);
+			if (head == '}') {
+				break;
 			}
 		}
+
+        if (head == EOF) {
+			err = LEX_PREMATURE_EOF;
+			errline = linecount;
+			return;
+		}
+
 		goto _skpspc;
 	}
 	ungetc(head, tape);
