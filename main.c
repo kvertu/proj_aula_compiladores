@@ -1,16 +1,20 @@
+// <main.c>::
 #include <stdio.h>
-#include "inc/main.h"
 #include "inc/parser.h"
+#include "inc/main.h"
 
-FILE *source;
-FILE *output;
+FILE *source;       // Fita de entrada
+FILE *output;       // Saída dos resultados
+FILE *outerror;     // Saída das mensagens de erro
 
+/*
+ * main — ponto de entrada: liga os fluxos padrão e inicia o interpretador.
+ */
 int main()
 {
     source = stdin;
     output = stdout;
-    // source = fopen(argv[1], "r");
-    lookahead = getToken(source);
+    outerror = stderr;
 
     mybc();
 

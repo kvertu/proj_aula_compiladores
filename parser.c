@@ -1,28 +1,94 @@
 //<parser.c>::
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "inc/error.h"
 #include "inc/lexer.h"
 #include "inc/tokens.h"
 #include "inc/vmachine.h"
 #include "inc/parser.h"
 
-//usar fscanf em vez de getc
-//tem q mudar pra ponto flutuante, criar ponto flutuante
+// Gramática EBNF do MyBC anotada com ações semânticas (vide Aula 07).
+// Na gramática, as ações aparecem como [[n]]; no código, cada ação n fica
+// delimitada por /*n*/ ... /*n*/, separando a sintaxe da interpretação.
+//
+//   mybc -> { [ E [[11]] ] ( '\n' | ';' ) } EOF
+//   E    -> [ [[1]] ( '+' | '-' ) ] T [[8]] { [[9]] ( '+' | '-' ) T [[10]] }
+//   T    -> F { [[6]] ( '*' | '/' ) F [[7]] }
+//   F    -> [[2]] ID ( ASGN E [[3]] | [[4]] ) | [[5]] NUM | '(' E ')'
+//
+// Ações semânticas:
+//   [[1]]  sigflag <- (lookahead == '-')      sinal unário da expressão
+//   [[2]]  name <- lexeme                     guarda o nome antes do match(ID)
+//   [[3]]  store(name)                        atribuição: name := acc (l-value)
+//   [[4]]  acc <- recall(name)                leitura da variável (r-value)
+//   [[5]]  acc <- strtod(lexeme)              valor da constante numérica
+//   [[6]]  push(); otimesflag <- lookahead    empilha o operando esquerdo de '*' '/'
+//   [[7]]  acc <- pop() otimes acc            multiplica/divide (checa divisão por zero)
+//   [[8]]  if sigflag: acc <- -acc            aplica o sinal unário ao primeiro termo
+//   [[9]]  push(); oplusflag <- lookahead     empilha o operando esquerdo de '+' '-'
+//   [[10]] acc <- pop() oplus acc             soma/subtrai
+//   [[11]] print acc                          exibe o resultado da expressão
 
 int lookahead; // Lookahead - o "olho" do compilador
 
+/*
+ * skipToStatementEnd — recuperação de erro em modo pânico.
+ *
+ * Descarta tokens até o fim do comando corrente ('\n' ou ';') e consome
+ * o separador, permitindo que a análise continue no comando seguinte.
+ */
+static void skipToStatementEnd(void) {
+    while (lookahead != EOF && lookahead != '\n' && lookahead != ';') {
+        lookahead = getToken(source);
+    }
+    if (lookahead == '\n' || lookahead == ';') {
+        match(lookahead);
+    }
+    if (err) {
+        return;
+    }
+}
+
+/*
+ * expr — reconhece e avalia uma expressão (não-terminal E).
+ *
+ *     E -> [ ( '+' | '-' ) ] T { ( '+' | '-' ) T }
+ *     T -> F { ( '*' | '/' ) F }
+ *     F -> ID ( ASGN E | ε ) | NUM | '(' E ')'
+ *
+ * As produções T e F estão embutidas na própria função, por meio dos
+ * rótulos _T e _F; apenas E (subexpressões e atribuições) é recursiva.
+ * O resultado fica no acumulador acc da máquina virtual.
+ *
+ * Erros: PARS_TOKEN_MISMATCH, LEX_PREMATURE_EOF e MATH_DIV_BY_ZERO.
+ */
 void expr(void)
 {
     char name[MAXSTRLEN+1];
     int sigflag = 0;
     int otimesflag = 0;
     int oplusflag = 0;
+    if (err) {
+        return;
+    }
     if (lookahead == '+' || lookahead == '-') {
-        if (lookahead == '-')
-            sigflag = 1; // Sinal identificado
+        /*1*/ if (lookahead == '-') sigflag = 1; /*1*/
         match(lookahead);
+        if (err) {
+            return;
+        }
+    }
+
+    if (lookahead != ID && lookahead != NUM && lookahead != '(') {
+        err = 0;
+        errtk = 0;
+        expectedtk = 0;
+        err = PARS_TOKEN_MISMATCH;
+        errtk = lookahead;
+        errline = linecount;
+        expectedtk = '(';
+        return;
     }
 
 _T:
@@ -32,36 +98,34 @@ _F:
     switch (lookahead) {
         case ID:
             //fprintf(output, " %s", lexeme);
-            strcpy(name, lexeme);
+            /*2*/ strcpy(name, lexeme); /*2*/
             match(ID); //ID é associado para variavel r-value ou l-value
             if(lookahead == ASGN){
                 // ID :=E -> l-value
                 match(ASGN);
                 expr();
-                // store(name)
-                store(name);
+                /*3*/ store(name); /*3*/
             }else{
                 //r-value
-                acc = recall(name);
+                /*4*/ acc = recall(name); /*4*/
             }
             break;
-        // case OCT:
-        //     acc = strtol(lexeme, NULL, 8);
-        //     match(OCT);
-        //     break;
-        // case HEX:
-        //     acc = strtol(lexeme, NULL, 16);
-        //     match(HEX);
-        //     break;
         case NUM:
-            acc = strtod(lexeme, NULL);
+            /*5*/ acc = strtod(lexeme, NULL); /*5*/
             match(NUM);
             break;
         default:
-            match('('); expr(); match(')');
+            match('(');
+            // Tem que sair de forma precoce para não sobrescrever o erro em matches posteriores
+            if (err) return; 
+            expr();
+            // Mesma coisa aqui
+            if (err) return;
+            match(')');
             break;
     }
 
+    /*7*/
     if (otimesflag) {
         //fprintf(output, " %c", otimesflag);
         if(otimesflag == '*'){
@@ -69,31 +133,34 @@ _F:
         }else {
             double divisor = acc;
             if (divisor == 0) {
-                fprintf(stderr, "Divisão por zero (linha %ld)\n", linecount);
-                exit(-5);
+                err = MATH_DIV_BY_ZERO;
+                errline = linecount;
+                return;
+            } else {
+                acc = pop() / divisor;
             }
-            acc = pop() / divisor;
         }
         otimesflag = 0;
     }
+    /*7*/
 
     if (lookahead == '*' || lookahead == '/')
     {
-        push(); //guarda operando esquerdo
-        otimesflag = lookahead;
+        /*6*/ push(); otimesflag = lookahead; /*6*/ //guarda operando esquerdo
         match(lookahead);
         goto _F;
     }
 
     // Termo termina aqui
+    /*8*/
     if (sigflag) {
-        //fprintf(output, " neg");
         acc = -acc;
         sigflag = 0;
     }
+    /*8*/
 
+    /*10*/
     if (oplusflag) {
-        //fprintf(output, " %c", oplusflag);
         if(oplusflag == '+'){
             acc = pop() + acc;
         }else{
@@ -101,39 +168,49 @@ _F:
         }
         oplusflag = 0;
     }
+    /*10*/
 
     if (lookahead == '+' || lookahead == '-')
     {
-        push();
-        oplusflag = lookahead;
+        /*9*/ push(); oplusflag = lookahead; /*9*/
         match(lookahead);
         goto _T;
     }
 }
 
+/*
+ * match — consome o token esperado e avança o lookahead.
+ *
+ * Se o lookahead não for o esperado, registra o erro (LEX_PREMATURE_EOF
+ * no fim do arquivo, PARS_TOKEN_MISMATCH nos demais casos) e não avança.
+ */
 void match(int expected)
 {
     if (expected == lookahead) {
-        // Esvazia o topo da pilha e segue para o próximo
-        //if (isprint(lookahead))
-        //    printf("%c ", lookahead);
-        //else
-        //    printf("%d ", lookahead);
-
         lookahead = getToken(source);
     } else {
-        // Erro de sintaxe
+        err = 0;
+        errtk = 0;
+        expectedtk = 0;
+        errline = linecount;
+
         if (lookahead == EOF) {
-            fprintf(stderr, "Atingido fim de arquivo prematuramente (linha %ld)\n", linecount);
-        } else if (isprint(lookahead)) {
-            fprintf(stderr, "Token '%c' não coincide (esperava '%c') (linha %ld)\n", lookahead, expected, linecount);
+            err = LEX_PREMATURE_EOF;
         } else {
-            fprintf(stderr, "Token %d não coincide (esperava %d) (linha %ld)\n", lookahead, expected, linecount);
+            err = PARS_TOKEN_MISMATCH;
+            errtk = lookahead;
+            expectedtk = expected;
         }
-        exit(-2);
     }
 }
 
+/*
+ * isFIRST — testa se o lookahead pode iniciar uma expressão.
+ *
+ *     FIRST(E) = { '+', '-', ID, NUM, '(' }
+ *
+ * Retorna o próprio token se ele pertence ao conjunto; caso contrário, 0.
+ */
 int isFIRST(void) {
     switch (lookahead) {
         case '+':
@@ -147,16 +224,50 @@ int isFIRST(void) {
     }
 }
 
-// TODO: criar uma flag de erro para tratar corretamente aqui
+/*
+ * mybc — símbolo inicial da gramática; laço principal do interpretador.
+ *
+ *     mybc -> { [ E ] ( '\n' | ';' ) } EOF
+ *
+ * Avalia cada comando e imprime seu resultado em output. Comandos vazios
+ * são aceitos. Em caso de erro, reporta-o e retoma a análise no comando
+ * seguinte via skipToStatementEnd().
+ */
 void mybc(void) {
-    while(lookahead != EOF) {
-        if (isFIRST()) {
-            expr(); // Resultado fica na acc
-            fprintf(output, "%lg\n", acc);
-        } // Podemos ter a expressão vazia
-
-        if (lookahead == '\n' || lookahead == ';') {
-            match(lookahead);
+    lookahead = getToken(source);
+    while (lookahead != EOF) {
+        if (err) {
+            printErr();
+            skipToStatementEnd();
+            continue;
         }
+
+        if (isFIRST()) {
+            expr();
+            if (err) {
+                printErr();
+                skipToStatementEnd();
+                continue;
+            }
+            /*11*/ fprintf(output, "%.10g\n", acc); /*11*/
+        } else if (lookahead != '\n' && lookahead != ';') {            
+            err = PARS_TOKEN_MISMATCH;        
+            errtk = lookahead;
+            errline = linecount;
+            expectedtk = '(';
+            printErr();
+            skipToStatementEnd();
+            continue;
+        } else {
+            match(lookahead);
+            if (err) {
+                printErr();
+                skipToStatementEnd();
+            }
+        }
+    }
+
+    if (err) {
+        printErr();
     }
 }
